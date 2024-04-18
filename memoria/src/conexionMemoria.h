@@ -7,6 +7,5 @@
 
 
 int iniciar_memoria(t_config_memoria* memoria_datos, t_log* logger_memoria);
-void procesar_conexion_memoria(t_procesar_conexion_args* void_args);
 
 #endif /* MEMORIA_SRC_CONEXIONMEMORIA_H_ */

@@ -20,6 +20,8 @@ int main(int argc, char* argv[]) {
 		perror("ERROR AL CARGAR DATOS!!!\n");
 		return -1;
 	}
+	//Inicia modulo INTERFAZ
+	iniciar_interfaz(entradasalida_datos, logger_entradasalida);
 
 	eliminar_logger(logger_entradasalida);
 	eliminar_datos_entradasalida(entradasalida_datos);

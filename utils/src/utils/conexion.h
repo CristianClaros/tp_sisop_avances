@@ -14,28 +14,53 @@
 
 typedef enum
 {
-    //----------------BASICOS--------------------------------
-    HANDSHAKE = 1,
-    //-------------MENSAJES ENTRE CONSOLA-KERNEL------------------------------------
-    GESTIONAR_CONSOLA_NUEVA = 0,
-    SOLICITAR_VALOR,
-    IMPRIMIR_VALOR,
-    PROCESO_TERMINADO,
-    //------------------------------------------------------------------------------
-    //-------------MENSAJES SERIALIZACION GLOBALES---------------------------------
-    PAQUETE = 4,
-    MENSAJE = 5,
-    PCB = 30,
-    //MENSAJES KERNEL - MEMORIA
-    TABLA_SEGMENTOS_INICIAL,
-    //-------------MENSAJES MEMORIA - KERNEL---------------------------------
-    PROCESO_INICIADO,
-    CREAR_SEGMENTO,
-    SEGMENTO_CREADO,
-    ESPACIO_INSUFICIENTE,
-    COMPACTACION,
-    BORRAR_SEGMENTO,
-	DESCONEXION
+	//+++++++++++++++++++ BASICOS
+	DESCONEXION = -1,
+	HANDSHAKE = 0,
+	//+++++++++++++++++++++++	KERNEL
+	INICIAR_PROCESO,
+	FINALIZAR_PROCESO,
+	INICIAR_PLANIFICACION,
+	DETENER_PLANIFICACION,
+	EJECUTAR_SCRIP_OPERACIONES,
+	MODIFICAR_GRADO_MULTIPROGRAMACION,
+	LISTAR_PROCESOS_ESTADO,
+	IDENTIFICAR_INTERFAZ,
+	RECIBIR_PROCESO_DESALOJADO,
+	FINALIZAR_PROCESO_SOLICITUD,
+	FINALIZAR_PROCESO_ERROR,
+	FINALIZAR_PROCESO_CONSOLA,
+	SOLICITUD_RECURSO,
+	LIBERAR_RECURSO,
+	SLEEP_INTERFAZ,
+	STDIN_INTERFAZ,
+	STDOUT_INTERFAZ,
+	CREATE_FS_INTERFAZ,
+	DELETE_FS_INTERFAZ,
+	TRUNCATE_FS_INTERFAZ,
+	READ_FS_INTERFAZ,
+	WRITE_FS_INTERFAZ,
+	//+++++++++++++++++++++++	CPU
+	EJECUTAR_PROCESO,
+	RECIBIR_DIRECCION_FISICA,
+	RECIBIR_INSTRUCCION,
+	//+++++++++++++++++++++++	MEMORIA
+	CREAR_PROCESO,
+	LIBERAR_PROCESO,
+	TRADUCIR_DIRECCION_LOGICA,
+	PEDIR_INSTRUCCION,
+	AJUSTAR_TAMANIO_PROCESO,
+	OBTENER_FRAME,
+	LEER_DIRECCION_FISICA,
+	//+++++++++++++++++++++++	INTERFAZ
+	IO_GEN_SLEEP,
+	IO_STDIN_READ,
+	IO_STDOUT_WRITE,
+	IO_FS_CREATE,
+	IO_FS_DELETE,
+	IO_FS_TRUNCATE,
+	IO_FS_WRITE,
+	IO_FS_READ,
 } op_code;
 
 //Tipo struct para conexion
@@ -51,5 +76,6 @@ int server_escuchar(t_log *logger, char* server_name, int socket_server, void (*
 int esperar_cliente(t_log* logger, const char* name, int socket_servidor);
 
 int crear_conexion(t_log* logger, const char* server_name, char* ip, char* puerto);
+void procesar_conexion(t_procesar_conexion_args* void_args);
 
 #endif /* UTILS_SRC_UTILS_CONEXION_H_ */

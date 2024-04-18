@@ -21,6 +21,9 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
+	//Iniciar modulo Kernel
+	iniciar_kernel(kernel_datos, logger_kernel);
+
 	eliminar_logger(logger_kernel);
 	eliminar_datos_kernel(kernel_datos);
 

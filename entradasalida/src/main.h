@@ -3,6 +3,7 @@
 
 #include "../../utils/src/utils/logger.h"
 #include "../../utils/src/utils/config.h"
+#include "conexionEntradaSalida.h"
 
 
 t_config_entradasalida* datos_entradasalida(char* ruta_config, t_log* logger);

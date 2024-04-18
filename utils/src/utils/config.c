@@ -17,7 +17,6 @@ int eliminar_config(t_config* config, t_log* logger){
 	}
 
 	config_destroy(config);
-	log_info(logger, "CONFIG BORRADO CORRECTAMENTE!!!\n");
 	return 1;
 }
 

@@ -3,6 +3,7 @@
 
 #include "../../utils/src/utils/logger.h"
 #include "../../utils/src/utils/config.h"
+#include "conexionKernel.h"
 
 
 t_config_kernel* datos_kernel(char* ruta_config, t_log* logger);
