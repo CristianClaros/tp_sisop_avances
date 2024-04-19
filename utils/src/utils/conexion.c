@@ -47,7 +47,7 @@ int iniciar_servidor(t_log* logger, const char* name_server, char* ip_server, ch
     freeaddrinfo(servinfo);
 
     // Aviso al logger
-    log_info(logger, "Escuchando en puerto: %s, (%s), %s\n", ip_server, puerto_server, name_server);
+    log_info(logger, "Escuchando IP: %s, en puerto: (%s), %s\n", ip_server, puerto_server, name_server);
 
     return socket_servidor;
 }
@@ -127,150 +127,261 @@ void procesar_conexion(t_procesar_conexion_args* void_args){
             log_info(logger, "DISCONNECT!");
             return;
         }
-
         switch (cop) {
 
         	//---------------------------------------- BASICAS -----------------------
     		case HANDSHAKE:
     			//Es el saludo del modulo para saber si se conecto correctamente
-    			return;
+    			recibir_mensaje(cliente_socket);
+    			break;
             //---------------------------------------- KERNEL -----------------------
     			// hay varias acciones que deben esperar del la consola
         	case INICIAR_PROCESO:
         		//Recibe la orden de la consola para iniciar proceso
-        		return;
+        		break;
         	case FINALIZAR_PROCESO:
         		//Recibe la orden de la consola para finalizar proceso
-        		return;
+        		break;
         	case INICIAR_PLANIFICACION:
         		//Recibe la orden de la consola para iniciar planificacion
-        		return;
+        		break;
         	case DETENER_PLANIFICACION:
         		//Recibe la orden de la consola para detener planificacion
-        		return;
+        		break;
         	case EJECUTAR_SCRIP_OPERACIONES:
         		//Recibe la orden de la consola para ejecutar scrips
-        		return;
+        		break;
         	case MODIFICAR_GRADO_MULTIPROGRAMACION:
         		//Recibe la orden de la consola para modificar grado de programacion
-        		return;
+        		break;
         	case LISTAR_PROCESOS_ESTADO:
         		//Recibe la orden de la consola para lsitar procesos
+        		break;
         	case IDENTIFICAR_INTERFAZ:
         		//Identifica la interfaz
-        		return;
+        		break;
         	case RECIBIR_PROCESO_DESALOJADO:
         		//Recibe PCB desde el CPU
-        		return;
+        		break;
         	case FINALIZAR_PROCESO_SOLICITUD:
         		//Recibe PCB para finalizar por solicitud de planificacion
-        		return;
+        		break;
         	case FINALIZAR_PROCESO_ERROR:
         		//Recibe PCB para finalizar por error de memoria
-        		return;
+        		break;
         	case FINALIZAR_PROCESO_CONSOLA:
         		//Recibe PCB para finalizar por solicitud de consola
-        		return;
+        		break;
         	case SOLICITUD_RECURSO:
         		//El cpu solicita recursos de i/o
-        		return;
+        		break;
         	case LIBERAR_RECURSO:
         		//El cpu solicita liberar recurso de i/o
-        		return;
+        		break;
         	case SLEEP_INTERFAZ:
         		//El cpu prdena al kernel SLEEP en interfaz
-        		return;
+        		break;
         	case STDIN_INTERFAZ:
         		//El cpu ordena al kernel que tome datos de entrada
-        		return;
+        		break;
         	case STDOUT_INTERFAZ:
         		//El cpu ordena al kernel que envie datos de salida
-        		return;
+        		break;
         	case CREATE_FS_INTERFAZ:
         		//El cpu ordena al kernel crear un archivo de fs por interfaz
-        		return;
+        		break;
         	case DELETE_FS_INTERFAZ:
         		//El cpu ordena al kernel borrar un archivo de fs por interfaz
-        		return;
+        		break;
         	case TRUNCATE_FS_INTERFAZ:
         		//El cpu ordena al kernel modificar un archivo de fs por interfaz
-        		return;
+        		break;
         	case READ_FS_INTERFAZ:
         		//El cpu ordena al kernel leer un archivo de fs por interfaz
-        		return;
+        		break;
         	case WRITE_FS_INTERFAZ:
         		//El cpu ordena al kernel escribir un archivo de fs por interfaz
-        		return;
-
+        		break;
             //---------------------------------------- CPU -----------------------
         	case EJECUTAR_PROCESO:
         		//Recibe PCB para ejecutar
-        		return;
+        		break;
         	case RECIBIR_DIRECCION_FISICA:
         		//Recibe la direccion logica transformada a fisica por la memoria
-        		return;
+        		break;
         	case RECIBIR_INSTRUCCION:
         		//Recibe la instruccion a ejecutar
-        		return;
+        		break;
         	//----------------------------------------MEMORIA----------------------
         	case CREAR_PROCESO:
         		//Crear la tabla de recursos necesarios para que el proceso este en memoria
-        		return;
+        		break;
         	case LIBERAR_PROCESO:
         		//Libera los recursos creados para el proceso en la memoria
-        		return;
+        		break;
         	case TRADUCIR_DIRECCION_LOGICA:
         		//Traduce las direccion logica a fisica que solicita el CPU
-        		return;
+        		break;
         	case PEDIR_INSTRUCCION:
         		//Recibe la orden de enviar la instruccion a ejcutar que solicto el CPU
-        		return;
+        		break;
         	case AJUSTAR_TAMANIO_PROCESO:
         		//Modifica el tamaño de un proceso solicitado por CPU
-        		return;
+        		break;
         	case OBTENER_FRAME:
         		//Espera solicut de FRAME por el CPU
-        		return;
+        		break;
         	case LEER_DIRECCION_FISICA:
         		//Lee una direccion fisica pedida por el CPU
-        		return;
+        		break;
         	//----------------------------------------INTERFAZ----------------------
         	case IO_GEN_SLEEP:
         		//Recibe orden del Kernel para SLEEP
-        		return;
+        		break;
         	case IO_STDIN_READ:
         		//Recibe orden del Kernel para leer por interfaz
-        		return;
+        		break;
         	case IO_STDOUT_WRITE:
         		//Recibe orden del Kernel para mostrar por interfaz
-        		return;
+        		break;
         	case IO_FS_CREATE:
         		//Recibe orden del Kernel para crear un FS
-        		return;
+        		break;
         	case IO_FS_DELETE:
         		//Recibe orden del Kernel para borra un FS
-        		return;
+        		break;
         	case IO_FS_TRUNCATE:
         		//Recibe orden del Kernel para truncar un FS
-        		return;
+        		break;
         	case IO_FS_WRITE:
         		///Recibe orden del Kernel para escribir en un FS
-        		return;
+        		break;
         	case IO_FS_READ:
         		///Recibe orden del Kernel para leer en un FS
-        		return;
+        		break;
         	// --------------------- DESCONEXION -------------------------
             case DESCONEXION:
             	//ERROR DE DESCONEXION
                 log_error(logger, "Cliente desconectado de %s...", server_name);
-                return;
+                break;
             default:
                 log_error(logger, "Algo anduvo mal en el server de %s", server_name);
                 log_info(logger, "Cop: %d", cop);
-                return;
+                break;
         }
     }
 
     log_warning(logger, "El cliente se desconecto de %s server", server_name);
     return;
 }
+
+
+//Funciones para recibir mensaje de modulos conectados
+int recibir_operacion(int socket_cliente)
+{
+	int cod_op;
+	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+		return cod_op;
+	else
+	{
+		close(socket_cliente);
+		return -1;
+	}
+}
+
+void* recibir_buffer(int* size, int socket_cliente)
+{
+	void * buffer;
+
+	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+	buffer = malloc(*size);
+	recv(socket_cliente, buffer, *size, MSG_WAITALL);
+
+	return buffer;
+}
+
+void recibir_mensaje(int socket_cliente)
+{
+	int size;
+	char* buffer = recibir_buffer(&size, socket_cliente);
+	printf("Se conecto el modulo  %s\n", buffer);
+	free(buffer);
+}
+
+//Envio de msj para decir que modulo es
+void* serializar_paquete(t_paquete* paquete, int bytes)
+{
+	void * magic = malloc(bytes);
+	int desplazamiento = 0;
+
+	memcpy(magic + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
+	desplazamiento+= sizeof(int);
+	memcpy(magic + desplazamiento, &(paquete->buffer->size), sizeof(int));
+	desplazamiento+= sizeof(int);
+	memcpy(magic + desplazamiento, paquete->buffer->stream, paquete->buffer->size);
+	desplazamiento+= paquete->buffer->size;
+
+	return magic;
+}
+
+void enviar_mensaje(char* mensaje, int socket_cliente, int codigo_protocolo){
+	t_paquete* paquete = malloc(sizeof(t_paquete));
+
+	paquete->codigo_operacion = codigo_protocolo;
+	paquete->buffer = malloc(sizeof(t_buffer));
+	paquete->buffer->size = strlen(mensaje) + 1;
+	paquete->buffer->stream = malloc(paquete->buffer->size);
+	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
+
+	int bytes = paquete->buffer->size + 2*sizeof(int);
+
+	void* a_enviar = serializar_paquete(paquete, bytes);
+
+	send(socket_cliente, a_enviar, bytes, 0);
+
+	free(a_enviar);
+	eliminar_paquete(paquete);
+}
+
+void crear_buffer(t_paquete* paquete)
+{
+	paquete->buffer = malloc(sizeof(t_buffer));
+	paquete->buffer->size = 0;
+	paquete->buffer->stream = NULL;
+}
+
+t_paquete* crear_paquete(int codigo_protocolo)
+{
+	t_paquete* paquete = malloc(sizeof(t_paquete));
+	paquete->codigo_operacion = codigo_protocolo;
+	crear_buffer(paquete);
+	return paquete;
+}
+
+void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
+{
+	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
+
+	memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(int));
+	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
+
+	paquete->buffer->size += tamanio + sizeof(int);
+}
+
+void enviar_paquete(t_paquete* paquete, int socket_cliente)
+{
+	int bytes = paquete->buffer->size + 2*sizeof(int);
+	void* a_enviar = serializar_paquete(paquete, bytes);
+
+	send(socket_cliente, a_enviar, bytes, 0);
+
+	free(a_enviar);
+}
+
+void eliminar_paquete(t_paquete* paquete)
+{
+	free(paquete->buffer->stream);
+	free(paquete->buffer);
+	free(paquete);
+}
+
