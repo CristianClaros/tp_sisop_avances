@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #include "config.h"
 
@@ -83,13 +85,15 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
+void* procesar_conexion(void* void_args);
+
 void crearServidor(t_log* logger, char* name_server, char* ip_server, char* puerto_server, int socket_server, void (*procesar_conexion)(t_procesar_conexion_args* args));
 int iniciar_servidor(t_log* logger, const char* name_server, char* ip_server, char* puerto_server);
-int server_escuchar(t_log *logger, char* server_name, int socket_server, void (*procesar_conexion)(t_procesar_conexion_args* args));
+int server_escuchar(t_log *logger, char* server_name, int socket_server);
 int esperar_cliente(t_log* logger, const char* name, int socket_servidor);
 
 int crear_conexion(t_log* logger, const char* server_name, char* ip, char* puerto);
-void procesar_conexion(t_procesar_conexion_args* void_args);
+
 
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int);

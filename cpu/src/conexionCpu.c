@@ -1,6 +1,7 @@
 #include "conexionCpu.h"
 
 #define IP_CPU "127.0.0.1"
+#define NAME_SERVER "CPU_DISPATCH"
 
 int socket_dispatch;
 int socket_interrupt;
@@ -17,7 +18,9 @@ int iniciar_cpu(t_config_cpu* cpu_datos, t_log* logger_cpu){
 	//crearServidor(logger_cpu, "SERVER_CPU_INTERRUPT", IP_CPU, cpu_datos->PUERTO_ESCUCHA_INTERRUPT, socket_interrupt, procesar_conexion);
 
 	//Servidor CPU_DISPATCH
-	crearServidor(logger_cpu, "SERVER_CPU_DISPATCH", IP_CPU, cpu_datos->PUERTO_ESCUCHA_DISPATCH, socket_dispatch, procesar_conexion);
+	socket_dispatch = iniciar_servidor(logger_cpu, NAME_SERVER, IP_CPU, cpu_datos->PUERTO_ESCUCHA_DISPATCH);
+
+	while(server_escuchar(logger_cpu, NAME_SERVER, socket_dispatch));
 
 	return 1;
 }

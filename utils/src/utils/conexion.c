@@ -1,131 +1,20 @@
 #include "conexion.h"
 
-void crearServidor(t_log* logger, char* name_server, char* ip_server, char* puerto_server, int socket_server, void (*procesar_conexion)(t_procesar_conexion_args* args)){
-    socket_server = iniciar_servidor(logger, name_server, ip_server, puerto_server);
-
-    if (socket_server == -1) {
-        log_error(logger, "FALLO AL CREAR EL SERVIDOR, CERRANDO %s", name_server);
-    }
-
-    server_escuchar(logger, name_server , socket_server,procesar_conexion);
-//    while (server_escuchar(logger, name_server, socket_server));
-
-}
-
-// INICIA SERVER ESCUCHANDO EN IP:PUERTO
-int iniciar_servidor(t_log* logger, const char* name_server, char* ip_server, char* puerto_server){
-    int socket_servidor;
-    struct addrinfo hints, *servinfo;
-
-    // Inicializando hints
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    // Recibe los addrinfo
-    getaddrinfo(ip_server, puerto_server, &hints, &servinfo);
-
-    //Creo un socket servidor
-    socket_servidor = 0;
-
-    socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
-
-    if(socket_servidor == -1){
-    	perror("NO PUEDE CREARSE EL SERVIDOR!!!\n");
-    }
-
-    if(bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
-    	perror("ERROR EN EL BIND!!!\n");
-    }
-
-    //Asociamos y escuhamos atraves del puerto
-    if(listen(socket_servidor,SOMAXCONN) == -1){
-    	perror("ERROR EN EL LISTEN!!!\n");
-    }
-
-    freeaddrinfo(servinfo);
-
-    // Aviso al logger
-    log_info(logger, "Escuchando IP: %s, en puerto: (%s), %s\n", ip_server, puerto_server, name_server);
-
-    return socket_servidor;
-}
-
-int server_escuchar(t_log *logger, char* server_name, int socket_server, void (*procesar_conexion)(t_procesar_conexion_args* args)){
-    int cliente_socket = esperar_cliente(logger, server_name, socket_server);
-
-    t_procesar_conexion_args* args = malloc(sizeof(t_procesar_conexion_args));
-    args->log = logger;
-    args->fd = cliente_socket;
-    args->server_name = server_name;
-
-    procesar_conexion(args);
-//Aqui hay que implementar hilos
-    return 0;
-}
-
-// ESPERAR CONEXION DE CLIENTE EN UN SERVER ABIERTO
-int esperar_cliente(t_log* logger, const char* name, int socket_servidor){
-    int socket_cliente;
-
-    if((socket_cliente = accept(socket_servidor, NULL, NULL)) == -1){
-    	perror("ERROR EN EL ACCEPT!!!\n");
-    	return -1;
-    }
-
-    log_info(logger, "Cliente conectado (a %s)\n", name);
-
-    return socket_cliente;
-}
-
-//Clientes
-int crear_conexion(t_log* logger, const char* server_name, char* ip, char* puerto){
-    struct addrinfo hints, *servinfo;
-
-    // Init de hints
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    // Recibe addrinfo
-    getaddrinfo(ip, puerto, &hints, &servinfo);
-
-    // Crea un socket con la informacion recibida (del primero, suficiente)
-    int socket_cliente = 0;
-
-    // Fallo en crear el socket
-    if((socket_cliente = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1) {
-        log_info(logger, "ERROR AL CREAR EL SOCKET CLIENTE!!!\n");
-        return -1;
-    }
-
-    // Error conectando
-    if(connect(socket_cliente, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
-        log_error(logger, "Error al conectar (a %s)\n", server_name);
-        return 0;
-    } else
-        log_info(logger, "Cliente conectado en %s:%s (a %s)\n", ip, puerto, server_name);
-
-    freeaddrinfo(servinfo);
-
-    return socket_cliente;
-}
-
 //Switch de espera del servidor
-void procesar_conexion(t_procesar_conexion_args* void_args){
+void* procesar_conexion(void* void_args){
 
-    t_log* logger = void_args->log;
-    int cliente_socket = void_args->fd;
-    char *server_name = void_args->server_name;
+    t_procesar_conexion_args *args = (t_procesar_conexion_args *) void_args;
+    t_log *logger = args->log;
+    int cliente_socket = args->fd;
+    char *server_name = args->server_name;
+    free(args);
 
     op_code cop;
     while (cliente_socket != -1) {
 
         if (recv(cliente_socket, &cop, sizeof(op_code), 0) != sizeof(op_code)) {
             log_info(logger, "DISCONNECT!");
-            return;
+            return NULL;
         }
         switch (cop) {
 
@@ -272,9 +161,117 @@ void procesar_conexion(t_procesar_conexion_args* void_args){
     }
 
     log_warning(logger, "El cliente se desconecto de %s server", server_name);
-    return;
+    return NULL;
+}
+// INICIA SERVER ESCUCHANDO EN IP:PUERTO
+int iniciar_servidor(t_log* logger, const char* name_server, char* ip_server, char* puerto_server){
+    int socket_servidor;
+    struct addrinfo hints, *servinfo;
+
+    // Inicializando hints
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+
+    // Recibe los addrinfo
+    getaddrinfo(ip_server, puerto_server, &hints, &servinfo);
+
+    //Creo un socket servidor
+    socket_servidor = 0;
+
+    socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+
+    if(socket_servidor == -1){
+    	perror("NO PUEDE CREARSE EL SERVIDOR!!!\n");
+    }
+
+    if(bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
+    	perror("ERROR EN EL BIND!!!\n");
+    }
+
+    //Asociamos y escuhamos atraves del puerto
+    if(listen(socket_servidor,SOMAXCONN) == -1){
+    	perror("ERROR EN EL LISTEN!!!\n");
+    }
+
+    freeaddrinfo(servinfo);
+
+    // Aviso al logger
+    log_info(logger, "Escuchando IP: %s, en puerto: (%s), %s\n", ip_server, puerto_server, name_server);
+
+    return socket_servidor;
 }
 
+int server_escuchar(t_log *logger, char *server_name, int server_socket) {
+    int cliente_socket = esperar_cliente(logger, server_name, server_socket);
+
+    t_procesar_conexion_args *args = malloc(sizeof(t_procesar_conexion_args));
+    args->log = logger;
+    args->fd = cliente_socket;
+    args->server_name = server_name;
+
+    if (cliente_socket != -1) {
+    	if(strcmp(server_name,"SERVER_CPU") == 0 || strcmp(server_name,"SERVER_INTERFAZ") == 0){
+    		procesar_conexion(args);
+    	}else{
+    		pthread_t atenderProcesoNuevo;
+    		pthread_create(&atenderProcesoNuevo, NULL, procesar_conexion, args);
+    		pthread_detach(atenderProcesoNuevo);
+    	}
+        return 1;
+    }
+    //implementar hilos
+    return 0;
+}
+
+// ESPERAR CONEXION DE CLIENTE EN UN SERVER ABIERTO
+int esperar_cliente(t_log* logger, const char* name, int socket_servidor){
+    int socket_cliente;
+
+    if((socket_cliente = accept(socket_servidor, NULL, NULL)) == -1){
+    	perror("ERROR EN EL ACCEPT!!!\n");
+    	return -1;
+    }
+
+    log_info(logger, "Cliente conectado (a %s)\n", name);
+
+    return socket_cliente;
+}
+
+//Clientes
+int crear_conexion(t_log* logger, const char* server_name, char* ip, char* puerto){
+    struct addrinfo hints, *servinfo;
+
+    // Init de hints
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+
+    // Recibe addrinfo
+    getaddrinfo(ip, puerto, &hints, &servinfo);
+
+    // Crea un socket con la informacion recibida (del primero, suficiente)
+    int socket_cliente = 0;
+
+    // Fallo en crear el socket
+    if((socket_cliente = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1) {
+        log_info(logger, "ERROR AL CREAR EL SOCKET CLIENTE!!!\n");
+        return -1;
+    }
+
+    // Error conectando
+    if(connect(socket_cliente, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {
+        log_error(logger, "Error al conectar (a %s)\n", server_name);
+        return 0;
+    } else
+        log_info(logger, "Cliente conectado en %s:%s (a %s)\n", ip, puerto, server_name);
+
+    freeaddrinfo(servinfo);
+
+    return socket_cliente;
+}
 
 //Funciones para recibir mensaje de modulos conectados
 int recibir_operacion(int socket_cliente)
@@ -304,7 +301,7 @@ void recibir_mensaje(int socket_cliente)
 {
 	int size;
 	char* buffer = recibir_buffer(&size, socket_cliente);
-	printf("Se conecto el modulo  %s\n", buffer);
+	printf("SE CONECTO UN MODULO DE  %s\n", buffer);
 	free(buffer);
 }
 
