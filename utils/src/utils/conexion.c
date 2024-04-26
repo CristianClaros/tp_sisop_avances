@@ -27,6 +27,8 @@ void* procesar_conexion(void* void_args){
     			// hay varias acciones que deben esperar del la consola
         	case INICIAR_PROCESO:
         		//Recibe la orden de la consola para iniciar proceso
+        		recibir_mensaje(cliente_socket);
+        		printf("INICIO_PROCESO\n");
         		break;
         	case FINALIZAR_PROCESO:
         		//Recibe la orden de la consola para finalizar proceso
@@ -104,6 +106,8 @@ void* procesar_conexion(void* void_args){
         	//----------------------------------------MEMORIA----------------------
         	case CREAR_PROCESO:
         		//Crear la tabla de recursos necesarios para que el proceso este en memoria
+        		recibir_mensaje(cliente_socket);
+        		enviar_mensaje("TE ENVIO TABLA", cliente_socket, INICIAR_PROCESO);
         		break;
         	case LIBERAR_PROCESO:
         		//Libera los recursos creados para el proceso en la memoria
