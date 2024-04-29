@@ -1,5 +1,4 @@
 #include "conexionKernel.h"
-#include "consola.h"
 
 #define IP_KERNEL "127.0.0.1"
 #define NAME_SERVER "SERVER KERNEL"
@@ -23,7 +22,7 @@ int iniciar_kernel(t_config_kernel* kernel_datos, t_log* logger_kernel){
 	socket_memoria = crear_conexion(logger_kernel, IP_KERNEL, kernel_datos->IP_MEMORIA, kernel_datos->PUERTO_MEMORIA);
 	enviar_mensaje("KERNEL", socket_memoria, HANDSHAKE);
 
-	while((server_escuchar(logger_kernel, NAME_SERVER, socket_kernel ) != DESCONEXION) && (iniciar_consola(socket_memoria) != -1));
+	while(server_escuchar(logger_kernel, NAME_SERVER, socket_kernel ));
 
 
 	return 1;
