@@ -71,6 +71,8 @@ void inicializar_variables(){
 	cola_exit = list_create();
 
 	recursos_disponibles = iniciar_recursos();
+
+
 }
 
 t_list* iniciar_recursos(){
@@ -280,7 +282,7 @@ void analizar_comando(char* linea){
 }
 
 void iterator(t_proceso* proceso){
-	printf("PID(%i), ESTADO(%s), POSICION: (%i)\n",proceso->pcb->pid, proceso->estado, proceso->pid_list);
+	printf("PID(%i), ESTADO(%s)\n",proceso->pcb->pid, proceso->estado);
 }
 
 //CAmbiar estado
@@ -298,11 +300,15 @@ void* iniciar_proceso(char* ruta){
 
 	cambiar_estado(proceso, "NEW");
 	proceso->pcb->pid = pid;
+	pid++;
 	proceso->pid_list = pid_list;
+	pid_list++;
 
 	proceso->pcb->program_counter = 0;
-	proceso->pcb->quantum = datos_kernel_config->QUANTUM;
-	printf("CREE PCB");
+	proceso->pcb->quantum = 0/*datos_kernel_config->QUANTUM*/;
+
+	//ACA PIDO TABLA
+	enviar_mensaje("DAME TABLA", socket_memoria, CREAR_PROCESO);
 	//ESTA ES UNA FUNCION DE RECIBIR TABLA
 	op_code cop; //ACA VERIFICA SI PUDO ABRIR LA RUTA
 	recv(socket_memoria,&(cop),sizeof(op_code), 0);
