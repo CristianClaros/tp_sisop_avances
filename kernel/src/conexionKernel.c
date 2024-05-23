@@ -308,7 +308,7 @@ void* iniciar_proceso(char* ruta){
 	proceso->pcb->quantum = 0/*datos_kernel_config->QUANTUM*/;
 
 	//ACA PIDO TABLA
-	enviar_mensaje("DAME TABLA", socket_memoria, CREAR_PROCESO);
+	enviar_mensaje(ruta, socket_memoria, CREAR_PROCESO);
 	//ESTA ES UNA FUNCION DE RECIBIR TABLA
 	op_code cop; //ACA VERIFICA SI PUDO ABRIR LA RUTA
 	recv(socket_memoria,&(cop),sizeof(op_code), 0);

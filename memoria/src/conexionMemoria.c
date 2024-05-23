@@ -4,8 +4,11 @@
 #define NAME_SERVER "SERVER MEMORIA"
 
 int socket_memoria;
+t_config_memoria* datos_memoria_config;
 
 int iniciar_memoria(t_config_memoria* memoria_datos, t_log* logger_memoria){
+
+	datos_memoria_config = memoria_datos;
 
 	socket_memoria = iniciar_servidor(logger_memoria, NAME_SERVER, IP_MEMORIA, memoria_datos->PUERTO_ESCUCHA);
 
@@ -39,7 +42,11 @@ void* procesar_conexion_memoria(void* void_args){
         	//----------------------------------------MEMORIA----------------------
         	case CREAR_PROCESO:
         		//Crear la tabla de recursos necesarios para que el proceso este en memoria
-        		recibir_mensaje(cliente_socket);
+        		int size;
+        		char* buffer = recibir_buffer(&size, cliente_socket);
+        		printf("BUFFER(%s)",buffer);
+        		abrir_instrucciones(buffer);
+
         		enviar_mensaje("TABLA RECIBIDA", cliente_socket, HANDSHAKE);
         		break;
         	case LIBERAR_PROCESO:
@@ -74,4 +81,135 @@ void* procesar_conexion_memoria(void* void_args){
 
     log_warning(logger, "El cliente se desconecto de %s server", server_name);
     return NULL;
+}
+
+void abrir_instrucciones(char* ruta) {
+	FILE* archivo;
+	char linea[100];
+	char* cadena;
+	char* token;
+	t_list* lista;
+
+//	char* ruta_scrip = malloc(50 * sizeof(char));
+
+	lista = list_create();
+
+//	strcat(ruta_scrip, "..");
+////	strcat(ruta_scrip, datos_memoria_config->PATH_INSTRUCCIONES);
+//	strcat(ruta_scrip, "/instrucciones1.txt");
+//	printf("(%s)",ruta_scrip);
+	archivo = fopen(ruta, "r");
+
+	if(archivo == NULL){
+		printf("Error Al Abrir El Archivo\n");
+		exit(1);
+	}else{
+		while(feof(archivo) == 0){
+			fgets(linea, 100, archivo);
+			t_instruccion* instruccion = malloc(sizeof(t_instruccion));
+			instruccion->instruccion = malloc(sizeof(char));
+
+			cadena = strtok(linea, "\n");
+			token = strtok(cadena, " ");
+			instruccion->cant_parametros = cantidad_argumentos(token);
+			instruccion->parametros = list_create();
+			strcpy(instruccion->instruccion, token);
+
+
+			for(int i=0;i<instruccion->cant_parametros;i++){
+				token = strtok(NULL, " ");
+				t_parametro* parametro = malloc(sizeof(t_parametro));
+				parametro->cant_caracteres = strlen(token);
+				parametro->parametro = malloc(sizeof(char));
+
+				strcpy(parametro->parametro, token);
+
+				list_add(instruccion->parametros, parametro);
+
+			}
+
+			list_add(lista, (void*)instruccion);
+
+		}
+	}
+
+	list_iterate(lista, (void*)iterator_instruccion);
+
+	fclose(archivo);
+
+}
+
+void iterator_instruccion(t_instruccion* instruccion){
+	printf("(%s)", instruccion->instruccion);
+
+	list_iterate(instruccion->parametros, (void*)iterator_parametro);
+
+	printf("\n");
+
+}
+
+void iterator_parametro(t_parametro* param){
+	printf("(%i)",param->cant_caracteres);
+	printf("(%s)",param->parametro);
+}
+
+int cantidad_argumentos(char* token){
+	if(strcmp(token, "EXIT") == 0){
+			return 0;
+		}
+	if(strcmp(token, "RESIZE") == 0){
+			return 1;
+		}
+	if(strcmp(token, "COPY_STRING") == 0){
+			return 1;
+		}
+	if(strcmp(token, "WAIT") == 0){
+			return 1;
+		}
+	if(strcmp(token, "SIGNAL") == 0){
+			return 1;
+		}
+	if(strcmp(token, "SET") == 0){
+			return 2;
+		}
+	if(strcmp(token, "MOV_IN") == 0){
+			return 2;
+		}
+	if(strcmp(token, "MOV_OUT") == 0){
+			return 2;
+		}
+	if(strcmp(token, "SUM") == 0){
+			return 2;
+		}
+	if(strcmp(token, "SUB") == 0){
+			return 2;
+		}
+	if(strcmp(token, "JNZ") == 0){
+			return 2;
+		}
+	if(strcmp(token, "IO_GEN_SLEEP") == 0){
+			return 2;
+		}
+	if(strcmp(token, "IO_FS_CREATE") == 0){
+			return 2;
+		}
+	if(strcmp(token, "IO_FS_DELETE") == 0){
+			return 2;
+		}
+	if(strcmp(token, "IO_STDIN_READ") == 0){
+			return 3;
+		}
+	if(strcmp(token, "IO_STDOUT_WRITE") == 0){
+			return 3;
+		}
+	if(strcmp(token, "IO_FS_TRUNCATE") == 0){
+			return 3;
+		}
+	if(strcmp(token, "IO_FS_WRITE") == 0){
+			return 5;
+		}
+	if(strcmp(token, "IO_FS_READ") == 0){
+			return 5;
+		}
+	return -1;
 }
