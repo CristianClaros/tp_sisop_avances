@@ -44,7 +44,6 @@ void* procesar_conexion_memoria(void* void_args){
         		//Crear la tabla de recursos necesarios para que el proceso este en memoria
         		int size;
         		char* buffer = recibir_buffer(&size, cliente_socket);
-        		printf("BUFFER(%s)",buffer);
         		abrir_instrucciones(buffer);
 
         		enviar_mensaje("TABLA RECIBIDA", cliente_socket, HANDSHAKE);
@@ -90,15 +89,16 @@ void abrir_instrucciones(char* ruta) {
 	char* token;
 	t_list* lista;
 
-//	char* ruta_scrip = malloc(50 * sizeof(char));
+	char* ruta_scrip = malloc(100 * sizeof(char));
 
 	lista = list_create();
 
-//	strcat(ruta_scrip, "..");
-////	strcat(ruta_scrip, datos_memoria_config->PATH_INSTRUCCIONES);
-//	strcat(ruta_scrip, "/instrucciones1.txt");
-//	printf("(%s)",ruta_scrip);
-	archivo = fopen(ruta, "r");
+	strcpy(ruta_scrip, "");
+	strcat(ruta_scrip, "../../../../../../..");
+	strcat(ruta_scrip, datos_memoria_config->PATH_INSTRUCCIONES);
+	strcat(ruta_scrip, ruta);
+
+	archivo = fopen(ruta_scrip, "r");
 
 	if(archivo == NULL){
 		printf("Error Al Abrir El Archivo\n");
