@@ -117,7 +117,9 @@ int recibir_operacion(int);
 
 void enviar_mensaje(char* mensaje, int socket_cliente, int codigo_protocolo);
 t_paquete* crear_paquete(int codigo_protocolo);
+void crear_buffer(t_paquete* paquete);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
+void* serializar_paquete(t_paquete* paquete, int bytes);
 void enviar_paquete(t_paquete* paquete, int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 

@@ -44,9 +44,11 @@ void* procesar_conexion_memoria(void* void_args){
         		//Crear la tabla de recursos necesarios para que el proceso este en memoria
         		int size;
         		char* buffer = recibir_buffer(&size, cliente_socket);
-        		abrir_instrucciones(buffer);
-
+        		t_list* lista_instrucciones = list_create();
+        		lista_instrucciones = abrir_instrucciones(buffer);
+//        		list_iterate(lista_instrucciones, (void*)iterator_instruccion);
         		enviar_mensaje("TABLA RECIBIDA", cliente_socket, HANDSHAKE);
+        		enviar_instrucciones(socket_memoria, lista_instrucciones, HANDSHAKE);
         		break;
         	case LIBERAR_PROCESO:
         		//Libera los recursos creados para el proceso en la memoria
@@ -82,7 +84,7 @@ void* procesar_conexion_memoria(void* void_args){
     return NULL;
 }
 
-void abrir_instrucciones(char* ruta) {
+t_list* abrir_instrucciones(char* ruta) {
 	FILE* archivo;
 	char linea[100];
 	char* cadena;
@@ -94,7 +96,7 @@ void abrir_instrucciones(char* ruta) {
 	lista = list_create();
 
 	strcpy(ruta_scrip, "");
-	strcat(ruta_scrip, "../../../../../../..");
+	strcat(ruta_scrip, "../../../../..");
 	strcat(ruta_scrip, datos_memoria_config->PATH_INSTRUCCIONES);
 	strcat(ruta_scrip, ruta);
 
@@ -133,10 +135,8 @@ void abrir_instrucciones(char* ruta) {
 		}
 	}
 
-	list_iterate(lista, (void*)iterator_instruccion);
-
 	fclose(archivo);
-
+	return lista;
 }
 
 void iterator_instruccion(t_instruccion* instruccion){
@@ -213,3 +213,29 @@ int cantidad_argumentos(char* token){
 		}
 	return -1;
 }
+
+//Envio de Instrucciones
+void enviar_instrucciones(int socket_cliente, t_list* lista_instrucciones, int protocolo){
+	// Ahora toca lo divertido!
+//	char* leido;
+//	t_paquete* paquete;
+//
+//	paquete = crear_paquete(protocolo);
+
+	// Leemos las instrucciones y vamos agregando
+	for(int i = 0; i < list_size(lista_instrucciones); i++){
+		t_instruccion* instruccion = malloc(sizeof(t_instruccion));
+
+		instruccion = (t_instruccion*) list_get(lista_instrucciones, i);
+		printf("Instruccion%s()\n", instruccion->instruccion);
+	}
+
+//	agregar_a_paquete(paquete, leido, strlen(leido) + 1);
+
+	// ¡No te olvides de liberar las líneas y el paquete antes de regresar!
+//	free(leido);
+
+//	enviar_paquete(paquete, socket_cliente);
+//	eliminar_paquete(paquete);
+}
+
