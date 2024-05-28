@@ -116,7 +116,7 @@ int crear_conexion(t_log* logger, const char* server_name, char* ip, char* puert
 int recibir_operacion(int socket_cliente)
 {
 	int cod_op;
-	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+	if(recv(socket_cliente, &cod_op, sizeof(uint32_t), MSG_WAITALL) > 0)
 		return cod_op;
 	else
 	{
@@ -125,11 +125,11 @@ int recibir_operacion(int socket_cliente)
 	}
 }
 
-void* recibir_buffer(int* size, int socket_cliente)
+void* recibir_buffer(uint32_t* size, int socket_cliente)
 {
 	void * buffer;
 
-	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+	recv(socket_cliente, size, sizeof(uint32_t), MSG_WAITALL);
 	buffer = malloc(*size);
 	recv(socket_cliente, buffer, *size, MSG_WAITALL);
 
@@ -138,29 +138,29 @@ void* recibir_buffer(int* size, int socket_cliente)
 
 void recibir_mensaje(int socket_cliente)
 {
-	int size;
+	uint32_t size;
 	char* buffer = recibir_buffer(&size, socket_cliente);
 	printf("SE CONECTO UN MODULO DE  %s\n", buffer);
 	free(buffer);
 }
 
 //Envio de msj para decir que modulo es
-void* serializar_paquete(t_paquete* paquete, int bytes)
+void* serializar_paquete(t_paquete* paquete, uint32_t bytes)
 {
 	void * magic = malloc(bytes);
-	int desplazamiento = 0;
+	uint32_t desplazamiento = 0;
 
-	memcpy(magic + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
-	desplazamiento+= sizeof(int);
-	memcpy(magic + desplazamiento, &(paquete->buffer->size), sizeof(int));
-	desplazamiento+= sizeof(int);
+	memcpy(magic + desplazamiento, &(paquete->codigo_operacion), sizeof(uint32_t));
+	desplazamiento+= sizeof(uint32_t);
+	memcpy(magic + desplazamiento, &(paquete->buffer->size), sizeof(uint32_t));
+	desplazamiento+= sizeof(uint32_t);
 	memcpy(magic + desplazamiento, paquete->buffer->stream, paquete->buffer->size);
 	desplazamiento+= paquete->buffer->size;
 
 	return magic;
 }
 
-void enviar_mensaje(char* mensaje, int socket_cliente, int codigo_protocolo){
+void enviar_mensaje(char* mensaje, int socket_cliente, uint32_t codigo_protocolo){
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 
 	paquete->codigo_operacion = codigo_protocolo;
@@ -169,7 +169,7 @@ void enviar_mensaje(char* mensaje, int socket_cliente, int codigo_protocolo){
 	paquete->buffer->stream = malloc(paquete->buffer->size);
 	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
 
-	int bytes = paquete->buffer->size + 2*sizeof(int);
+	uint32_t bytes = paquete->buffer->size + 2*sizeof(uint32_t);
 
 	void* a_enviar = serializar_paquete(paquete, bytes);
 
@@ -186,7 +186,7 @@ void crear_buffer(t_paquete* paquete)
 	paquete->buffer->stream = NULL;
 }
 
-t_paquete* crear_paquete(int codigo_protocolo)
+t_paquete* crear_paquete(uint32_t codigo_protocolo)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = codigo_protocolo;
@@ -194,19 +194,28 @@ t_paquete* crear_paquete(int codigo_protocolo)
 	return paquete;
 }
 
-void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
+void agregar_a_paquete(t_paquete* paquete, void* valor, uint32_t tamanio)
 {
-	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
+	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(uint32_t));
 
-	memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(int));
-	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
+	memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(uint32_t));
+	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(uint32_t), valor, tamanio);
 
-	paquete->buffer->size += tamanio + sizeof(int);
+	paquete->buffer->size += tamanio + sizeof(uint32_t);
+}
+
+void agregar_a_paquete_int(t_paquete* paquete, void* valor, uint32_t tamanio)
+{
+	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + sizeof(uint32_t));
+
+	memcpy(paquete->buffer->stream + paquete->buffer->size, valor, tamanio);
+
+	paquete->buffer->size += tamanio;
 }
 
 void enviar_paquete(t_paquete* paquete, int socket_cliente)
 {
-	int bytes = paquete->buffer->size + 2*sizeof(int);
+	uint32_t bytes = paquete->buffer->size + 2*sizeof(uint32_t);
 	void* a_enviar = serializar_paquete(paquete, bytes);
 
 	send(socket_cliente, a_enviar, bytes, 0);
@@ -220,4 +229,3 @@ void eliminar_paquete(t_paquete* paquete)
 	free(paquete->buffer);
 	free(paquete);
 }
-

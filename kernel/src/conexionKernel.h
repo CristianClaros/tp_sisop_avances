@@ -15,15 +15,22 @@
 #include<pthread.h>
 
 #include "../../utils/src/utils/conexion.h"
+#include "../../utils/src/utils/estructuras.h"
 
 int iniciar_kernel(t_config_kernel* kernel_datos, t_log* logger_kernel);
 int iniciar_consola();
 void analizar_comando(char* linea);
 void inicializar_variables();
 t_list* iniciar_recursos();
+void iniciar_planificador_corto();
+void iniciar_fifo();
+void iniciar_rr();
+void iniciar_vrr();
+
 void* procesar_conexion_kernel(void* args);
 void* iniciar_proceso(char* ruta);
 void* cambiar_estado(t_proceso* proceso, char* estado);
+
 bool buscar_pid(t_proceso* proceso);
 
 void iterator(t_proceso* proceso);

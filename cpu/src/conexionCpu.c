@@ -2,6 +2,7 @@
 
 #define IP_CPU "127.0.0.1"
 #define NAME_SERVER "CPU_DISPATCH"
+#define NAME_SERVER_INTERRUPT "CPU_INTERRUPT"
 
 int socket_dispatch;
 int socket_interrupt;
@@ -15,12 +16,11 @@ int iniciar_cpu(t_config_cpu* cpu_datos, t_log* logger_cpu){
 
 	//SERVIDOR CPU_INTERRUPT
 	socket_interrupt = iniciar_servidor(logger_cpu, "CPU_INTERRUPT", IP_CPU, cpu_datos->PUERTO_ESCUCHA_INTERRUPT);
-	//crearServidor(logger_cpu, "SERVER_CPU_INTERRUPT", IP_CPU, cpu_datos->PUERTO_ESCUCHA_INTERRUPT, socket_interrupt, procesar_conexion);
 
 	//Servidor CPU_DISPATCH
 	socket_dispatch = iniciar_servidor(logger_cpu, NAME_SERVER, IP_CPU, cpu_datos->PUERTO_ESCUCHA_DISPATCH);
 
-	while(server_escuchar(logger_cpu, NAME_SERVER, socket_dispatch, procesar_conexion_cpu));
+	while(server_escuchar(logger_cpu, NAME_SERVER, socket_dispatch, procesar_conexion_cpu) && server_escuchar(logger_cpu, NAME_SERVER_INTERRUPT, socket_interrupt, procesar_conexion_cpu));
 
 	return 1;
 }
@@ -34,6 +34,7 @@ void* procesar_conexion_cpu(void* void_args){
     free(args);
 
     op_code cop;
+
     while (cliente_socket != -1) {
 
         if (recv(cliente_socket, &cop, sizeof(op_code), 0) != sizeof(op_code)) {
@@ -50,6 +51,26 @@ void* procesar_conexion_cpu(void* void_args){
             //---------------------------------------- CPU -----------------------
         	case EJECUTAR_PROCESO:
         		//Recibe PCB para ejecutar
+        		t_pcb* pcb;
+        		pcb = recibir_pcb(cliente_socket);
+        		mostrar_pcb(pcb);
+//        		pedir_instruccion(pcb->registro->program_counter, socket_memoria, PEDIR_INSTRUCCION);
+        		enviar_mensaje("VOY A PEDIRTE INSTRUCCIONES", socket_memoria, PEDIR_INSTRUCCION);
+        		//Aca empieza a hacer el Ciclo de ejecucion
+//        		t_instruccion* instruccion;
+//        		do{
+//        			pedir_instruccion(pcb->registro->program_counter, socket_memoria, PEDIR_INSTRUCCION);
+//        			uint32_t cop;
+//        			recv(cliente_socket, &cop, sizeof(op_code), 0);
+//
+//        			instruccion = recibir_instruccion(socket_memoria);
+//        			printf("Instruccion(%s)\n", instruccion->instruccion);
+//
+//        		}while(strcmp(instruccion->instruccion, "EXIT") != 0);
+        		//Ejemplo de arriba
+
+        		enviar_mensaje("EXIT", cliente_socket, HANDSHAKE);
+        		enviar_pcb(cliente_socket, pcb, HANDSHAKE);
         		break;
         	case RECIBIR_DIRECCION_FISICA:
         		//Recibe la direccion logica transformada a fisica por la memoria
@@ -71,4 +92,15 @@ void* procesar_conexion_cpu(void* void_args){
 
     log_warning(logger, "El cliente se desconecto de %s server", server_name);
     return NULL;
+}
+
+
+void pedir_instruccion(uint32_t pid, int socket_cliente, uint32_t codigo_protocolo){
+	t_paquete* paquete = malloc(sizeof(t_paquete));
+
+	paquete = crear_paquete(codigo_protocolo);
+	agregar_a_paquete_int(paquete, &pid, sizeof(uint32_t));
+
+	enviar_paquete(paquete, socket_cliente);
+	eliminar_paquete(paquete);
 }

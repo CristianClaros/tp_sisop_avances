@@ -5,10 +5,12 @@
 
 int socket_memoria;
 t_config_memoria* datos_memoria_config;
+t_list* pid_instrucciones;
 
 int iniciar_memoria(t_config_memoria* memoria_datos, t_log* logger_memoria){
 
 	datos_memoria_config = memoria_datos;
+	pid_instrucciones = list_create();
 
 	socket_memoria = iniciar_servidor(logger_memoria, NAME_SERVER, IP_MEMORIA, memoria_datos->PUERTO_ESCUCHA);
 
@@ -25,7 +27,11 @@ void* procesar_conexion_memoria(void* void_args){
     char *server_name = args->server_name;
     free(args);
 
+    uint32_t pid = 0;
+    uint32_t size;
     op_code cop;
+    char* buffer;
+
     while (cliente_socket != -1) {
 
         if (recv(cliente_socket, &cop, sizeof(op_code), 0) != sizeof(op_code)) {
@@ -42,13 +48,20 @@ void* procesar_conexion_memoria(void* void_args){
         	//----------------------------------------MEMORIA----------------------
         	case CREAR_PROCESO:
         		//Crear la tabla de recursos necesarios para que el proceso este en memoria
-        		int size;
-        		char* buffer = recibir_buffer(&size, cliente_socket);
+        		buffer = recibir_buffer(&size, cliente_socket);
+
+
         		t_list* lista_instrucciones = list_create();
         		lista_instrucciones = abrir_instrucciones(buffer);
-//        		list_iterate(lista_instrucciones, (void*)iterator_instruccion);
-        		enviar_mensaje("TABLA RECIBIDA", cliente_socket, HANDSHAKE);
-        		enviar_instrucciones(socket_memoria, lista_instrucciones, HANDSHAKE);
+
+        		t_pcb_instrucciones* pcb_instrucciones = malloc(sizeof(t_pcb_instrucciones));
+
+        		pcb_instrucciones->pid = pid;
+        		pcb_instrucciones->instrucciones = lista_instrucciones;
+        		list_add(pid_instrucciones, pcb_instrucciones);
+        		printf("INSTRUCCIONES LEIDAS CORRECTAMENTE a PID(%i)\n", pcb_instrucciones->pid);
+//        		list_iterate(pid_instrucciones, (void*)iterator_pid_instruccion); //Muestra las instrucciones  y PID propio que abrio la Memoria
+        		pid++;
         		break;
         	case LIBERAR_PROCESO:
         		//Libera los recursos creados para el proceso en la memoria
@@ -58,6 +71,14 @@ void* procesar_conexion_memoria(void* void_args){
         		break;
         	case PEDIR_INSTRUCCION:
         		//Recibe la orden de enviar la instruccion a ejcutar que solicto el CPU
+        		recv(cliente_socket, &cop, sizeof(op_code), 0);
+        		recibir_mensaje(cliente_socket);
+//        		recv(cliente_socket, &pid_pedido, sizeof(uint32_t), 0);
+//        		printf("ME ESTAS PIDIENDO PID(%i)",pid_pedido);
+//        		t_instruccion* instruccion;
+//        		instruccion = (t_instruccion*) list_get(pid_instrucciones, pid_pedido);
+//        		enviar_instruccion(cliente_socket, instruccion, HANDSHAKE);
+        		printf("INSTRUCCION ENVIADA A CPU\n");
         		break;
         	case AJUSTAR_TAMANIO_PROCESO:
         		//Modifica el tamaño de un proceso solicitado por CPU
@@ -115,13 +136,13 @@ t_list* abrir_instrucciones(char* ruta) {
 			token = strtok(cadena, " ");
 			instruccion->cant_parametros = cantidad_argumentos(token);
 			instruccion->parametros = list_create();
+
 			strcpy(instruccion->instruccion, token);
 
 
 			for(int i=0;i<instruccion->cant_parametros;i++){
 				token = strtok(NULL, " ");
 				t_parametro* parametro = malloc(sizeof(t_parametro));
-				parametro->cant_caracteres = strlen(token);
 				parametro->parametro = malloc(sizeof(char));
 
 				strcpy(parametro->parametro, token);
@@ -137,20 +158,6 @@ t_list* abrir_instrucciones(char* ruta) {
 
 	fclose(archivo);
 	return lista;
-}
-
-void iterator_instruccion(t_instruccion* instruccion){
-	printf("(%s)", instruccion->instruccion);
-
-	list_iterate(instruccion->parametros, (void*)iterator_parametro);
-
-	printf("\n");
-
-}
-
-void iterator_parametro(t_parametro* param){
-	printf("(%i)",param->cant_caracteres);
-	printf("(%s)",param->parametro);
 }
 
 int cantidad_argumentos(char* token){
@@ -214,28 +221,8 @@ int cantidad_argumentos(char* token){
 	return -1;
 }
 
-//Envio de Instrucciones
-void enviar_instrucciones(int socket_cliente, t_list* lista_instrucciones, int protocolo){
-	// Ahora toca lo divertido!
-//	char* leido;
-//	t_paquete* paquete;
-//
-//	paquete = crear_paquete(protocolo);
-
-	// Leemos las instrucciones y vamos agregando
-	for(int i = 0; i < list_size(lista_instrucciones); i++){
-		t_instruccion* instruccion = malloc(sizeof(t_instruccion));
-
-		instruccion = (t_instruccion*) list_get(lista_instrucciones, i);
-		printf("Instruccion%s()\n", instruccion->instruccion);
-	}
-
-//	agregar_a_paquete(paquete, leido, strlen(leido) + 1);
-
-	// ¡No te olvides de liberar las líneas y el paquete antes de regresar!
-//	free(leido);
-
-//	enviar_paquete(paquete, socket_cliente);
-//	eliminar_paquete(paquete);
+void iterator_pid_instruccion(t_pcb_instrucciones* pcb_instrucciones){
+	printf("PID(%i)\n",pcb_instrucciones->pid);
+	list_iterate(pcb_instrucciones->instrucciones, (void*) iterator_instruccion);
 }
 

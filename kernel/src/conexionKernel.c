@@ -14,8 +14,8 @@ int socket_memoria;
 
 //VARIABLE COLAS Y LISTAS
 t_list* cola_ready;
-t_list* cola_listo_ready;
-t_list* cola_blockeado;
+t_list* cola_exec;
+t_list* cola_blocked;
 t_list* cola_exit;
 
 //LISTA ARCHIVOS ABIERTOS Y RECURSOS
@@ -29,12 +29,21 @@ typedef struct{
 
 //PIDs
 int pid_list = 0;
-int pid = 0;
+uint32_t pid = 0;
 
 //SEMAFOROS
 sem_t ready;
+sem_t listo_ready;
+sem_t exec;
+sem_t planificador;
 
-int pid_busqueda = 0;
+//Mutex
+pthread_mutex_t mutex_instrucciones;
+pthread_mutex_t mutex_cola_ready;
+pthread_mutex_t mutex_cola_exec;
+
+
+uint32_t pid_busqueda = 0;
 
 int iniciar_kernel(t_config_kernel* kernel_datos, t_log* logger_kernel){
 
@@ -42,6 +51,9 @@ int iniciar_kernel(t_config_kernel* kernel_datos, t_log* logger_kernel){
 	log_kernel = logger_kernel;
 
 	sem_init(&ready, 0, datos_kernel_config->GRADO_MULTIPROGRAMACION);
+	sem_init(&listo_ready, 0, 1);
+	sem_init(&exec, 0, 1);
+	sem_init(&planificador, 0, 1);
 
 	socket_kernel = iniciar_servidor(logger_kernel, NAME_SERVER, IP_KERNEL, PUERTO_KERNEL);
 
@@ -66,13 +78,14 @@ int iniciar_kernel(t_config_kernel* kernel_datos, t_log* logger_kernel){
 
 void inicializar_variables(){
 	cola_ready = list_create();
-	cola_listo_ready = list_create();
-	cola_blockeado = list_create();
+	cola_exec = list_create();
+	cola_blocked = list_create();
 	cola_exit = list_create();
 
 	recursos_disponibles = iniciar_recursos();
 
-
+	sem_wait(&listo_ready);
+	iniciar_planificador_corto();
 }
 
 t_list* iniciar_recursos(){
@@ -89,6 +102,73 @@ t_list* iniciar_recursos(){
 		list_add(recursos, recurso);
 	}
 	return recursos;
+}
+
+void iniciar_planificador_corto(){
+	pthread_t planificador_corto;
+	if(strcmp(datos_kernel_config->ALGORITMO_PLANIFICACION, "FIFO") == 0){
+		pthread_create(&planificador_corto, NULL, (void*)iniciar_fifo, NULL);
+		pthread_detach(planificador_corto);
+	}
+	if(strcmp(datos_kernel_config->ALGORITMO_PLANIFICACION, "RR") == 0){
+		pthread_create(&planificador_corto, NULL, (void*)iniciar_rr, NULL);
+		pthread_detach(planificador_corto);
+	}
+	if(strcmp(datos_kernel_config->ALGORITMO_PLANIFICACION, "VRR") == 0){
+		pthread_create(&planificador_corto, NULL, (void*)iniciar_vrr, NULL);
+		pthread_detach(planificador_corto);
+	}
+}
+
+void iniciar_fifo(){
+	sem_wait(&planificador);
+	while(1){
+		sem_wait(&planificador);
+		sem_wait(&listo_ready);
+		sem_wait(&exec);
+
+		t_proceso* proceso = malloc(sizeof(t_proceso));
+		pthread_mutex_lock(&mutex_cola_exec);
+		proceso = (t_proceso*) list_remove(cola_ready, 0);
+		sem_post(&ready);
+		cambiar_estado(proceso, "EXEC");
+
+		list_add(cola_exec, proceso);
+		enviar_pcb(socket_dispatch, proceso->pcb, EJECUTAR_PROCESO);
+
+		//ESPERA RESPUESTA DEL CPU
+		op_code cop;
+		char * buffer;
+		uint32_t size;
+		recv(socket_dispatch, &cop, sizeof(op_code), 0);
+		buffer = recibir_buffer(&size, socket_dispatch);
+
+		op_code cod;
+		t_pcb* pcb_retorno = malloc(sizeof(t_pcb));
+		recv(socket_dispatch, &cod, sizeof(op_code), 0);
+		pcb_retorno = recibir_pcb(socket_dispatch);
+
+		proceso = (t_proceso*) list_remove(cola_exec, 0);
+
+		proceso->pcb = pcb_retorno;
+
+		if(strcmp(buffer, "EXIT") == 0){
+			cambiar_estado(proceso, "EXIT");
+			list_add(cola_exit, proceso);
+		}
+
+		pthread_mutex_unlock(&mutex_cola_exec);
+		sem_post(&exec);
+		sem_post(&listo_ready);
+	}
+}
+
+void iniciar_rr(){
+
+}
+
+void iniciar_vrr(){
+
 }
 
 //PROCESAR CONEXION
@@ -253,16 +333,15 @@ void analizar_comando(char* linea){
     	t_proceso* proceso_exit = list_remove(cola_ready, pid_encontrado);
 
     	sem_post(&ready);
-    	log_info(log_kernel, "PID: <%i> - Estado Anterior: <%s> - Estado Actual: <EXIT>", proceso_exit->pcb->pid, proceso_exit->estado);
     	cambiar_estado(proceso_exit, "EXIT");
 
     	list_add(cola_exit, proceso_exit);
 
     }
     if(strcmp(token, "DETENER_PLANIFICACION") == 0)
-        printf("VOY A DETENER PLANIFICACION!!!\n"); //ACA VA A DETENER MEDIANTE UN SEMAFORO
+    	sem_wait(&listo_ready);
     if(strcmp(token, "INICIAR_PLANIFICACION") == 0)
-        printf("VOY A INICIAR_PLANIFICACION!!!\n"); //LO MISMO MEDIANTE UN SEMAFORO
+    	sem_post(&listo_ready);
     if(strcmp(token, "MULTIPROGRAMACION") == 0){
     	token = strtok(NULL, " ");
     	int diferencia = datos_kernel_config->GRADO_MULTIPROGRAMACION - atoi(token);
@@ -278,6 +357,8 @@ void analizar_comando(char* linea){
         printf("LISTA DE PROCESOS!!!\n");
     	list_iterate(cola_ready, (void*) iterator);
     	list_iterate(cola_exit, (void*) iterator);
+    	list_iterate(cola_exec, (void*) iterator);
+    	list_iterate(cola_blocked, (void*) iterator);
     }
 }
 
@@ -287,6 +368,7 @@ void iterator(t_proceso* proceso){
 
 //CAmbiar estado
 void* cambiar_estado(t_proceso* proceso, char* estado){
+	log_info(log_kernel, "PID: <%i> - Estado Anterior: <%s> - Estado Actual: <%s>", proceso->pcb->pid, proceso->estado, estado);
 	proceso->estado = estado;
 	return NULL;
 }
@@ -298,30 +380,34 @@ void* iniciar_proceso(char* ruta){
 	proceso->estado = malloc(sizeof(char));
 	proceso->pcb = malloc(sizeof(t_pcb));
 
-	cambiar_estado(proceso, "NEW");
+	proceso->estado = "NEW";
 	proceso->pcb->pid = pid;
 	pid++;
 	proceso->pid_list = pid_list;
 	pid_list++;
 
-	proceso->pcb->program_counter = 0;
-	proceso->pcb->quantum = 0/*datos_kernel_config->QUANTUM*/;
+	proceso->pcb->quantum = datos_kernel_config->QUANTUM;
+	proceso->pcb->registro = iniciar_registros();
 
 	//ACA PIDO TABLA
+	pthread_mutex_lock(&mutex_instrucciones);
 	enviar_mensaje(ruta, socket_memoria, CREAR_PROCESO);
 	//ESTA ES UNA FUNCION DE RECIBIR TABLA
-	op_code cop; //ACA VERIFICA SI PUDO ABRIR LA RUTA
-	recv(socket_memoria,&(cop),sizeof(op_code), 0);
-	recibir_mensaje(socket_memoria);
-	log_info(log_kernel, "Se crea el proceso <%i> en NEW", proceso->pcb->pid);
+//	op_code cop; //ACA VERIFICA SI PUDO ABRIR LA RUTA
+//	recv(socket_memoria,&(cop),sizeof(op_code), 0);
+
+	log_info(log_kernel, "Se crea el proceso <%i> en %s", proceso->pcb->pid, proceso->estado);
+	pthread_mutex_unlock(&mutex_instrucciones);
 
 	sem_wait(&ready);
-	log_info(log_kernel, "PID: <%i> - Estado Anterior: <%s> - Estado Actual: <READY>", proceso->pcb->pid, proceso->estado);
+	pthread_mutex_lock(&mutex_cola_ready);
 	cambiar_estado(proceso, "READY");
 
 	list_add(cola_ready, proceso);
 	log_info(log_kernel, "Cola Ready <COLA>: [<LISTA DE PIDS>]");
 
+	pthread_mutex_unlock(&mutex_cola_ready);
+	sem_post(&planificador);
 
 	return NULL;
 }
@@ -329,3 +415,6 @@ void* iniciar_proceso(char* ruta){
 bool buscar_pid(t_proceso* proceso){
 	return proceso->pcb->pid == pid_busqueda;
 }
+
+
+

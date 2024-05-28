@@ -6,7 +6,7 @@
 #include<string.h>
 #include<stdlib.h>
 #include<stdio.h>
-
+#include <stdint.h>
 
 typedef struct{
 	char* IP_MEMORIA;
@@ -15,10 +15,10 @@ typedef struct{
 	char* PUERTO_CPU_DISPATCH;
 	char* PUERTO_CPU_INTERRUPT;
 	char* ALGORITMO_PLANIFICACION;
-	int QUANTUM;
+	uint32_t QUANTUM;
 	char** RECURSOS;
 	char** INSTANCIAS_RECURSOS;
-	int GRADO_MULTIPROGRAMACION;
+	uint32_t GRADO_MULTIPROGRAMACION;
 }t_config_kernel;
 
 typedef struct{
@@ -26,28 +26,28 @@ typedef struct{
 	char* PUERTO_MEMORIA;
 	char* PUERTO_ESCUCHA_DISPATCH;
 	char* PUERTO_ESCUCHA_INTERRUPT;
-	int CANTIDAD_ENTRADAS_TLB;
+	uint32_t CANTIDAD_ENTRADAS_TLB;
 	char* ALGORITMO_TLB;
 }t_config_cpu;
 
 typedef struct{
 	char* PUERTO_ESCUCHA;
-	int TAM_MEMORIA;
-	int TAM_PAGINA;
+	uint32_t TAM_MEMORIA;
+	uint32_t TAM_PAGINA;
 	char* PATH_INSTRUCCIONES;
-	int RETARDO_RESPUESTA;
+	uint32_t RETARDO_RESPUESTA;
 }t_config_memoria;
 
 typedef struct{
 	char* TIPO_INTERFAZ;
-	int TIEMPO_UNIDAD_TRABAJO;
+	uint32_t TIEMPO_UNIDAD_TRABAJO;
 	char* IP_KERNEL;
 	char* PUERTO_KERNEL;
 	char* IP_MEMORIA;
 	char* PUERTO_MEMORIA;
 	char* PATH_BASE_DIALFS;
-	int BLOCK_SIZE;
-	int BLOCK_COUNT;
+	uint32_t BLOCK_SIZE;
+	uint32_t BLOCK_COUNT;
 }t_config_entradasalida;
 
 t_config* iniciar_config(char* ruta_config, t_log* logger);
