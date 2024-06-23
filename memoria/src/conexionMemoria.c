@@ -27,7 +27,6 @@ void* procesar_conexion_memoria(void* void_args){
     char *server_name = args->server_name;
     free(args);
 
-    uint32_t pid = 0;
     uint32_t size;
     op_code cop;
     char* buffer;
@@ -49,19 +48,19 @@ void* procesar_conexion_memoria(void* void_args){
         	case CREAR_PROCESO:
         		//Crear la tabla de recursos necesarios para que el proceso este en memoria
         		buffer = recibir_buffer(&size, cliente_socket);
+        		int desplazamiento = 0;
 
+        		t_pid_instruccion* pid_instruccion = malloc(sizeof(t_pid_instruccion));
+        		pid_instruccion->ruta_instrucciones = malloc(sizeof(char));
 
-        		t_list* lista_instrucciones = list_create();
-        		lista_instrucciones = abrir_instrucciones(buffer);
+        		pid_instruccion->pid = recibir_int(buffer, &desplazamiento);
+        		pid_instruccion->ruta_instrucciones = recibir_string(buffer, &desplazamiento);
 
-        		t_pcb_instrucciones* pcb_instrucciones = malloc(sizeof(t_pcb_instrucciones));
+        		list_add(pid_instrucciones, pid_instruccion);
 
-        		pcb_instrucciones->pid = pid;
-        		pcb_instrucciones->instrucciones = lista_instrucciones;
-        		list_add(pid_instrucciones, pcb_instrucciones);
-        		printf("INSTRUCCIONES LEIDAS CORRECTAMENTE a PID(%i)\n", pcb_instrucciones->pid);
-//        		list_iterate(pid_instrucciones, (void*)iterator_pid_instruccion); //Muestra las instrucciones  y PID propio que abrio la Memoria
-        		pid++;
+        		op_code code = OK;
+        		send(cliente_socket,&code, sizeof(op_code),0);
+
         		break;
         	case LIBERAR_PROCESO:
         		//Libera los recursos creados para el proceso en la memoria
@@ -71,14 +70,9 @@ void* procesar_conexion_memoria(void* void_args){
         		break;
         	case PEDIR_INSTRUCCION:
         		//Recibe la orden de enviar la instruccion a ejcutar que solicto el CPU
-        		recv(cliente_socket, &cop, sizeof(op_code), 0);
-        		recibir_mensaje(cliente_socket);
-//        		recv(cliente_socket, &pid_pedido, sizeof(uint32_t), 0);
-//        		printf("ME ESTAS PIDIENDO PID(%i)",pid_pedido);
-//        		t_instruccion* instruccion;
-//        		instruccion = (t_instruccion*) list_get(pid_instrucciones, pid_pedido);
-//        		enviar_instruccion(cliente_socket, instruccion, HANDSHAKE);
-        		printf("INSTRUCCION ENVIADA A CPU\n");
+        		buffer = recibir_buffer(&size, cliente_socket);
+
+        		atender_peticion_instruccion(buffer, cliente_socket);
         		break;
         	case AJUSTAR_TAMANIO_PROCESO:
         		//Modifica el tamaño de un proceso solicitado por CPU
@@ -89,6 +83,8 @@ void* procesar_conexion_memoria(void* void_args){
         	case LEER_DIRECCION_FISICA:
         		//Lee una direccion fisica pedida por el CPU
         		break;
+        	case GUARDAR_DIRECCION_LOGICA:
+        		//Escribe en un lugar de la memoria
         	// --------------------- DESCONEXION -------------------------
             case DESCONEXION:
             	//ERROR DE DESCONEXION
@@ -105,124 +101,58 @@ void* procesar_conexion_memoria(void* void_args){
     return NULL;
 }
 
-t_list* abrir_instrucciones(char* ruta) {
-	FILE* archivo;
-	char linea[100];
-	char* cadena;
-	char* token;
-	t_list* lista;
-
-	char* ruta_scrip = malloc(100 * sizeof(char));
-
-	lista = list_create();
-
-	strcpy(ruta_scrip, "");
-	strcat(ruta_scrip, "../../../../..");
-	strcat(ruta_scrip, datos_memoria_config->PATH_INSTRUCCIONES);
-	strcat(ruta_scrip, ruta);
-
-	archivo = fopen(ruta_scrip, "r");
-
-	if(archivo == NULL){
-		printf("Error Al Abrir El Archivo\n");
-		exit(1);
-	}else{
-		while(feof(archivo) == 0){
-			fgets(linea, 100, archivo);
-			t_instruccion* instruccion = malloc(sizeof(t_instruccion));
-			instruccion->instruccion = malloc(sizeof(char));
-
-			cadena = strtok(linea, "\n");
-			token = strtok(cadena, " ");
-			instruccion->cant_parametros = cantidad_argumentos(token);
-			instruccion->parametros = list_create();
-
-			strcpy(instruccion->instruccion, token);
-
-
-			for(int i=0;i<instruccion->cant_parametros;i++){
-				token = strtok(NULL, " ");
-				t_parametro* parametro = malloc(sizeof(t_parametro));
-				parametro->parametro = malloc(sizeof(char));
-
-				strcpy(parametro->parametro, token);
-
-				list_add(instruccion->parametros, parametro);
-
-			}
-
-			list_add(lista, (void*)instruccion);
-
-		}
-	}
-
-	fclose(archivo);
-	return lista;
-}
-
-int cantidad_argumentos(char* token){
-	if(strcmp(token, "EXIT") == 0){
-			return 0;
-		}
-	if(strcmp(token, "RESIZE") == 0){
-			return 1;
-		}
-	if(strcmp(token, "COPY_STRING") == 0){
-			return 1;
-		}
-	if(strcmp(token, "WAIT") == 0){
-			return 1;
-		}
-	if(strcmp(token, "SIGNAL") == 0){
-			return 1;
-		}
-	if(strcmp(token, "SET") == 0){
-			return 2;
-		}
-	if(strcmp(token, "MOV_IN") == 0){
-			return 2;
-		}
-	if(strcmp(token, "MOV_OUT") == 0){
-			return 2;
-		}
-	if(strcmp(token, "SUM") == 0){
-			return 2;
-		}
-	if(strcmp(token, "SUB") == 0){
-			return 2;
-		}
-	if(strcmp(token, "JNZ") == 0){
-			return 2;
-		}
-	if(strcmp(token, "IO_GEN_SLEEP") == 0){
-			return 2;
-		}
-	if(strcmp(token, "IO_FS_CREATE") == 0){
-			return 2;
-		}
-	if(strcmp(token, "IO_FS_DELETE") == 0){
-			return 2;
-		}
-	if(strcmp(token, "IO_STDIN_READ") == 0){
-			return 3;
-		}
-	if(strcmp(token, "IO_STDOUT_WRITE") == 0){
-			return 3;
-		}
-	if(strcmp(token, "IO_FS_TRUNCATE") == 0){
-			return 3;
-		}
-	if(strcmp(token, "IO_FS_WRITE") == 0){
-			return 5;
-		}
-	if(strcmp(token, "IO_FS_READ") == 0){
-			return 5;
-		}
-	return -1;
-}
-
 void iterator_pid_instruccion(t_pcb_instrucciones* pcb_instrucciones){
 	printf("PID(%i)\n",pcb_instrucciones->pid);
 	list_iterate(pcb_instrucciones->instrucciones, (void*) iterator_instruccion);
 }
 
+
+//Peticion de instruccion
+
+void atender_peticion_instruccion(void* buffer, int cliente_socket){
+	int desplazamiento = 0;
+
+	int pidBusqueda = recibir_int(buffer, &desplazamiento);
+	int program_counter = recibir_int(buffer, &desplazamiento);
+
+	t_pid_instruccion* data = malloc(sizeof(t_pid_instruccion));
+	data = (t_pid_instruccion*) list_get(pid_instrucciones, pidBusqueda);
+
+	char* instruccion = obtenerInstruccion(data->ruta_instrucciones, program_counter);
+	usleep((datos_memoria_config->RETARDO_RESPUESTA)*1000); // Duerme el proceso por RETARDO y luego continua
+
+	t_paquete* paquete = crear_paquete(OK);
+	agregar_a_paquete(paquete, instruccion, strlen(instruccion)+1);
+	enviar_paquete(paquete, cliente_socket);
+
+	eliminar_paquete(paquete);
+}
+
+char* obtenerInstruccion(char* pathInstrucciones, int program_counter){
+    FILE* file;
+
+	char* ruta_scrip = malloc(100 * sizeof(char));
+
+	strcpy(ruta_scrip, "");
+	strcat(ruta_scrip, "../../../../..");
+	strcat(ruta_scrip, datos_memoria_config->PATH_INSTRUCCIONES);
+	strcat(ruta_scrip, pathInstrucciones);
+
+
+    file = fopen(ruta_scrip, "rt");
+    int numLineaActual = 0;
+    char lineaActual[1000];
+
+    char* instruccion = malloc(sizeof(char*));
+
+    while(feof(file) == 0){
+    	fgets(lineaActual, 1000, file);
+    	if(numLineaActual == program_counter){
+    		instruccion = strtok(lineaActual, "\n");
+    		break;
+    	}
+    	numLineaActual++;
+    }
+    fclose(file);
+    return instruccion;
+}

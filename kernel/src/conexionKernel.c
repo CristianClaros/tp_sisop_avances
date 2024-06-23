@@ -11,12 +11,16 @@ int socket_kernel;
 int socket_dispatch;
 int socket_interrupt;
 int socket_memoria;
+int socket_interfaz1;
 
 //VARIABLE COLAS Y LISTAS
 t_list* cola_ready;
 t_list* cola_exec;
 t_list* cola_blocked;
 t_list* cola_exit;
+
+//Listas de kernel
+t_list* lista_interfaz;
 
 //LISTA ARCHIVOS ABIERTOS Y RECURSOS
 t_list* archivos_abiertos;
@@ -44,11 +48,13 @@ pthread_mutex_t mutex_cola_exec;
 
 
 uint32_t pid_busqueda = 0;
+char* nombre_interfaz;
 
 int iniciar_kernel(t_config_kernel* kernel_datos, t_log* logger_kernel){
 
 	datos_kernel_config = kernel_datos;
 	log_kernel = logger_kernel;
+	lista_interfaz = list_create();
 
 	sem_init(&ready, 0, datos_kernel_config->GRADO_MULTIPROGRAMACION);
 	sem_init(&listo_ready, 0, 1);
@@ -137,11 +143,6 @@ void iniciar_fifo(){
 		enviar_pcb(socket_dispatch, proceso->pcb, EJECUTAR_PROCESO);
 
 		//ESPERA RESPUESTA DEL CPU
-		op_code cop;
-		char * buffer;
-		uint32_t size;
-		recv(socket_dispatch, &cop, sizeof(op_code), 0);
-		buffer = recibir_buffer(&size, socket_dispatch);
 
 		op_code cod;
 		t_pcb* pcb_retorno = malloc(sizeof(t_pcb));
@@ -151,10 +152,32 @@ void iniciar_fifo(){
 		proceso = (t_proceso*) list_remove(cola_exec, 0);
 
 		proceso->pcb = pcb_retorno;
-
-		if(strcmp(buffer, "EXIT") == 0){
+		//SI FINALIZA LAS INSTRUCICONES
+		if(cod == FINALIZAR_PROCESO){
 			cambiar_estado(proceso, "EXIT");
 			list_add(cola_exit, proceso);
+		}
+		//SI debe hacer uso del i/o
+		if(cod == SLEEP_INTERFAZ){
+			cambiar_estado(proceso, "BLOCKED");
+			list_add(cola_blocked, proceso);
+			//Todo esto va como proceso de blocked
+			cod = recv(socket_dispatch, &cod, sizeof(op_code),0);
+			uint32_t size;
+			int desplazamiento = 0;
+			void* buffer = recibir_buffer(&size, socket_dispatch);
+
+			char* interfaz = recibir_string(buffer, &desplazamiento);
+			int valor = recibir_int(buffer, &desplazamiento);
+
+			//Buscar interfaz en la lista
+			t_paquete* paquete_enviar = crear_paquete(IO_GEN_SLEEP);
+			agregar_a_paquete_int(paquete_enviar, &(proceso->pcb->pid),sizeof(uint32_t));
+			agregar_a_paquete_int(paquete_enviar, &valor, sizeof(int));
+			enviar_paquete(paquete_enviar, socket_interfaz1);
+
+			eliminar_paquete(paquete_enviar);
+
 		}
 
 		pthread_mutex_unlock(&mutex_cola_exec);
@@ -181,6 +204,10 @@ void* procesar_conexion_kernel(void* void_args){
     free(args);
 
     op_code cop;
+    void* buffer;
+    uint32_t size;
+    int desplazamiento;
+
     while (cliente_socket != -1) {
 
         if (recv(cliente_socket, &cop, sizeof(op_code), 0) != sizeof(op_code)) {
@@ -195,30 +222,26 @@ void* procesar_conexion_kernel(void* void_args){
     			recibir_mensaje(cliente_socket);
     			break;
             //---------------------------------------- KERNEL -----------------------
-    			// hay varias acciones que deben esperar del la consola
-        	case INICIAR_PROCESO:
-        		//Recibe la orden de la consola para iniciar proceso
-        		break;
-        	case FINALIZAR_PROCESO:
-        		//Recibe la orden de la consola para finalizar proceso
-        		break;
-        	case INICIAR_PLANIFICACION:
-        		//Recibe la orden de la consola para iniciar planificacion
-        		break;
-        	case DETENER_PLANIFICACION:
-        		//Recibe la orden de la consola para detener planificacion
-        		break;
-        	case EJECUTAR_SCRIP_OPERACIONES:
-        		//Recibe la orden de la consola para ejecutar scrips
-        		break;
-        	case MODIFICAR_GRADO_MULTIPROGRAMACION:
-        		//Recibe la orden de la consola para modificar grado de programacion
-        		break;
-        	case LISTAR_PROCESOS_ESTADO:
-        		//Recibe la orden de la consola para lsitar procesos
-        		break;
         	case IDENTIFICAR_INTERFAZ:
         		//Identifica la interfaz
+        		buffer = recibir_buffer(&size, cliente_socket);
+        		t_interfaz* interfaz = malloc(sizeof(t_interfaz));
+        		interfaz->nombre = malloc(sizeof(char));
+        		interfaz->tipo_interfaz = malloc(sizeof(char));
+
+        		desplazamiento = 0;
+        		interfaz->nombre = recibir_string(buffer, &desplazamiento);
+        		interfaz->socket = cliente_socket;
+        		//Aca esta linea de abajo vuela, porque debo buscar en la lista su socket
+        		socket_interfaz1 = cliente_socket;
+
+        		interfaz->tipo_interfaz = recibir_string(buffer, &desplazamiento);
+
+        		list_add(lista_interfaz, interfaz);
+
+
+        		log_info(logger, "Interfaz conectada (%s - %s)", interfaz->nombre, interfaz->tipo_interfaz);
+
         		break;
         	case RECIBIR_PROCESO_DESALOJADO:
         		//Recibe PCB desde el CPU
@@ -240,6 +263,26 @@ void* procesar_conexion_kernel(void* void_args){
         		break;
         	case SLEEP_INTERFAZ:
         		//El cpu prdena al kernel SLEEP en interfaz
+        		buffer = recibir_buffer(&size, cliente_socket);
+
+        		desplazamiento = 0;
+        		nombre_interfaz = recibir_string(buffer, &desplazamiento);
+        		int pid_sleep = recibir_int(buffer, &desplazamiento);
+        		int valor_sleep = recibir_int(buffer, &desplazamiento);
+
+
+        		if(list_any_satisfy(lista_interfaz, (void*)buscar_interfaz)){
+        			t_interfaz* interfaz = (t_interfaz*) list_find(lista_interfaz, (void*) buscar_interfaz);
+
+        			t_paquete* paquete = crear_paquete(IO_GEN_SLEEP);
+        			agregar_a_paquete_int(paquete, &(pid_sleep), sizeof(uint32_t));
+        			agregar_a_paquete_int(paquete, &(valor_sleep), sizeof(int));
+
+        			enviar_paquete(paquete, interfaz->socket);
+        			eliminar_paquete(paquete);
+
+        			//Espera rspuesta de la interfaz
+        		}
         		break;
         	case STDIN_INTERFAZ:
         		//El cpu ordena al kernel que tome datos de entrada
@@ -354,7 +397,7 @@ void analizar_comando(char* linea){
     	}
     }
     if(strcmp(token, "PROCESO_ESTADO") == 0){
-        printf("LISTA DE PROCESOS!!!\n");
+
     	list_iterate(cola_ready, (void*) iterator);
     	list_iterate(cola_exit, (void*) iterator);
     	list_iterate(cola_exec, (void*) iterator);
@@ -391,11 +434,18 @@ void* iniciar_proceso(char* ruta){
 
 	//ACA PIDO TABLA
 	pthread_mutex_lock(&mutex_instrucciones);
-	enviar_mensaje(ruta, socket_memoria, CREAR_PROCESO);
-	//ESTA ES UNA FUNCION DE RECIBIR TABLA
-//	op_code cop; //ACA VERIFICA SI PUDO ABRIR LA RUTA
-//	recv(socket_memoria,&(cop),sizeof(op_code), 0);
 
+	t_paquete* paquete = crear_paquete(CREAR_PROCESO);
+	agregar_a_paquete_int(paquete, &(proceso->pcb->pid), sizeof(uint32_t));
+	agregar_a_paquete(paquete, ruta, strlen(ruta)+1);
+	enviar_paquete(paquete, socket_memoria);
+	eliminar_paquete(paquete);
+
+	op_code code;
+	recv(socket_memoria, &code, sizeof(op_code),0);
+	if(code != OK){
+		perror("NO SE PUDO CREAR TABLA POR PROBLEMAS DE ARCHIVO\n");
+	}
 	log_info(log_kernel, "Se crea el proceso <%i> en %s", proceso->pcb->pid, proceso->estado);
 	pthread_mutex_unlock(&mutex_instrucciones);
 
@@ -416,5 +466,7 @@ bool buscar_pid(t_proceso* proceso){
 	return proceso->pcb->pid == pid_busqueda;
 }
 
-
+bool buscar_interfaz(t_interfaz* interfaz){
+	return (strcmp(interfaz->tipo_interfaz, nombre_interfaz) == 0);
+}
 

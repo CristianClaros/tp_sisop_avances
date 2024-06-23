@@ -39,6 +39,7 @@ typedef struct{
 }t_config_memoria;
 
 typedef struct{
+	char* NOMBRE;
 	char* TIPO_INTERFAZ;
 	uint32_t TIEMPO_UNIDAD_TRABAJO;
 	char* IP_KERNEL;

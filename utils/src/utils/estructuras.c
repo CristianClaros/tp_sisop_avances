@@ -264,3 +264,118 @@ void enviar_instruccion(int socket_cliente, t_instruccion* instruccion, uint32_t
 	eliminar_paquete(paquete);
 }
 
+t_list* abrir_instrucciones(char* ruta) {
+	FILE* archivo;
+	char linea[100];
+	char* cadena;
+	char* token;
+	t_list* lista;
+
+	char* ruta_scrip = malloc(100 * sizeof(char));
+
+	lista = list_create();
+
+	strcpy(ruta_scrip, "");
+	strcat(ruta_scrip, "../../../../..");
+	strcat(ruta_scrip, "/home/utnso/scripts-pruebas");
+	strcat(ruta_scrip, ruta);
+
+	archivo = fopen(ruta_scrip, "r");
+
+	if(archivo == NULL){
+		printf("Error Al Abrir El Archivo\n");
+		exit(1);
+	}else{
+		while(feof(archivo) == 0){
+			fgets(linea, 100, archivo);
+			t_instruccion* instruccion = malloc(sizeof(t_instruccion));
+			instruccion->instruccion = malloc(sizeof(char));
+
+			cadena = strtok(linea, "\n");
+			token = strtok(cadena, " ");
+			instruccion->cant_parametros = cantidad_argumentos(token);
+			instruccion->parametros = list_create();
+
+			strcpy(instruccion->instruccion, token);
+
+
+			for(int i=0;i<instruccion->cant_parametros;i++){
+				token = strtok(NULL, " ");
+				t_parametro* parametro = malloc(sizeof(t_parametro));
+				parametro->parametro = malloc(sizeof(char));
+
+				strcpy(parametro->parametro, token);
+
+				list_add(instruccion->parametros, parametro);
+
+			}
+
+			list_add(lista, (void*)instruccion);
+
+		}
+	}
+
+	fclose(archivo);
+	return lista;
+}
+
+int cantidad_argumentos(char* token){
+	if(strcmp(token, "EXIT") == 0){
+			return 0;
+		}
+	if(strcmp(token, "RESIZE") == 0){
+			return 1;
+		}
+	if(strcmp(token, "COPY_STRING") == 0){
+			return 1;
+		}
+	if(strcmp(token, "WAIT") == 0){
+			return 1;
+		}
+	if(strcmp(token, "SIGNAL") == 0){
+			return 1;
+		}
+	if(strcmp(token, "SET") == 0){
+			return 2;
+		}
+	if(strcmp(token, "MOV_IN") == 0){
+			return 2;
+		}
+	if(strcmp(token, "MOV_OUT") == 0){
+			return 2;
+		}
+	if(strcmp(token, "SUM") == 0){
+			return 2;
+		}
+	if(strcmp(token, "SUB") == 0){
+			return 2;
+		}
+	if(strcmp(token, "JNZ") == 0){
+			return 2;
+		}
+	if(strcmp(token, "IO_GEN_SLEEP") == 0){
+			return 2;
+		}
+	if(strcmp(token, "IO_FS_CREATE") == 0){
+			return 2;
+		}
+	if(strcmp(token, "IO_FS_DELETE") == 0){
+			return 2;
+		}
+	if(strcmp(token, "IO_STDIN_READ") == 0){
+			return 3;
+		}
+	if(strcmp(token, "IO_STDOUT_WRITE") == 0){
+			return 3;
+		}
+	if(strcmp(token, "IO_FS_TRUNCATE") == 0){
+			return 3;
+		}
+	if(strcmp(token, "IO_FS_WRITE") == 0){
+			return 5;
+		}
+	if(strcmp(token, "IO_FS_READ") == 0){
+			return 5;
+		}
+	return -1;
+}

@@ -144,6 +144,29 @@ void recibir_mensaje(int socket_cliente)
 	free(buffer);
 }
 
+uint32_t recibir_int(void* buffer, int* desplazamiento){
+	uint32_t size;
+
+	memcpy(&(size), buffer + (*desplazamiento), sizeof(uint32_t));
+	(*desplazamiento) += sizeof(uint32_t);
+
+	return size;
+}
+
+char* recibir_string(void* buffer, int* desplazamiento){
+	uint32_t caracteres_instruccion;
+
+	memcpy(&(caracteres_instruccion), buffer + (*desplazamiento), sizeof(uint32_t));
+	(*desplazamiento) += sizeof(uint32_t);
+
+	char* string = malloc(caracteres_instruccion);
+
+	memcpy(string, buffer + (*desplazamiento), caracteres_instruccion);
+	(*desplazamiento) += caracteres_instruccion;
+
+	return string;
+}
+
 //Envio de msj para decir que modulo es
 void* serializar_paquete(t_paquete* paquete, uint32_t bytes)
 {

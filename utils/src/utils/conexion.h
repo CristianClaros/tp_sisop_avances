@@ -19,6 +19,7 @@ typedef enum
 	//+++++++++++++++++++ BASICOS
 	DESCONEXION = -1,
 	HANDSHAKE = 0,
+	OK = 1,
 	//+++++++++++++++++++++++	KERNEL
 	INICIAR_PROCESO,
 	FINALIZAR_PROCESO,
@@ -54,6 +55,7 @@ typedef enum
 	AJUSTAR_TAMANIO_PROCESO,
 	OBTENER_FRAME,
 	LEER_DIRECCION_FISICA,
+	GUARDAR_DIRECCION_LOGICA,
 	//+++++++++++++++++++++++	INTERFAZ
 	IO_GEN_SLEEP,
 	IO_STDIN_READ,
@@ -97,6 +99,9 @@ int crear_conexion(t_log* logger, const char* server_name, char* ip, char* puert
 void* recibir_buffer(uint32_t* size, int socket_cliente);
 void recibir_mensaje(int socket_cliente);
 int recibir_operacion(int socket_cliente);
+
+uint32_t recibir_int(void* buffer, int* desplazamiento);
+char* recibir_string(void* buffer, int* desplazamiento);
 
 void enviar_mensaje(char* mensaje, int socket_cliente, uint32_t codigo_protocolo);
 t_paquete* crear_paquete(uint32_t codigo_protocolo);

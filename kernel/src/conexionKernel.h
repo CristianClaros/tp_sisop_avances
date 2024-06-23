@@ -31,8 +31,8 @@ void* procesar_conexion_kernel(void* args);
 void* iniciar_proceso(char* ruta);
 void* cambiar_estado(t_proceso* proceso, char* estado);
 
-bool buscar_pid(t_proceso* proceso);
-
 void iterator(t_proceso* proceso);
+bool buscar_interfaz(t_interfaz* interfaz);
+bool buscar_pid(t_proceso* proceso);
 
 #endif /* KERNEL_SRC_CONEXIONKERNEL_H_ */

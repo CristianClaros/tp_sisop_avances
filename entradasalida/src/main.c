@@ -4,7 +4,7 @@
 #include "main.h"
 
 
-#define ARGUMENTOS 2
+#define ARGUMENTOS 3
 
 int main(int argc, char* argv[]) {
 
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
 			return -1;
 	}
 
-	if(!(logger_entradasalida = iniciar_logger("../entradasalida.log", "LOGGER_ENTRADASALIDA")) || !(entradasalida_datos = datos_entradasalida(argv[1],logger_entradasalida))){
+	if(!(logger_entradasalida = iniciar_logger("../entradasalida.log", "LOGGER_ENTRADASALIDA")) || !(entradasalida_datos = datos_entradasalida(argv[1], argv[2], logger_entradasalida))){
 		perror("ERROR AL CARGAR DATOS!!!\n");
 		return -1;
 	}
@@ -32,13 +32,13 @@ int main(int argc, char* argv[]) {
 
 //Carga en una struct Kernel los datos de config
 
-t_config_entradasalida* datos_entradasalida(char* ruta_config, t_log* logger){
+t_config_entradasalida* datos_entradasalida(char* nombre_interfaz, char* ruta_config, t_log* logger){
 	t_config_entradasalida* entradasalida_struct;
 	t_config* config;
 
 
 	if((config = iniciar_config(ruta_config, logger))){
-		entradasalida_struct = cargar_config_entradasalida(config, logger);
+		entradasalida_struct = cargar_config_entradasalida(config, nombre_interfaz, logger);
 		eliminar_config(config, logger);
 	}else{
 		return NULL;
@@ -48,9 +48,12 @@ t_config_entradasalida* datos_entradasalida(char* ruta_config, t_log* logger){
 
 }
 
-t_config_entradasalida* cargar_config_entradasalida(t_config* config, t_log* logger){
+t_config_entradasalida* cargar_config_entradasalida(t_config* config, char* nombre_interfaz, t_log* logger){
 	t_config_entradasalida* entradasalida_struct = malloc(sizeof(t_config_entradasalida));
 
+	//nombre interfaz
+	entradasalida_struct->NOMBRE = strdup(nombre_interfaz);
+	log_info(logger, "NOMBRE: %s", entradasalida_struct->NOMBRE);
 
 	entradasalida_struct->TIPO_INTERFAZ = strdup(config_get_string_value(config, "TIPO_INTERFAZ"));
 	log_info(logger, "TIPO_INTERFAZ: %s", entradasalida_struct->TIPO_INTERFAZ);

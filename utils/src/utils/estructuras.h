@@ -41,7 +41,12 @@ typedef struct{
 	//t_archivos archivos;
 }t_pcb;
 
-
+//estructs para kernel
+typedef struct{
+	uint32_t socket;
+	char* nombre;
+	char* tipo_interfaz;
+}t_interfaz;
 
 typedef struct{
 	uint32_t pid_list;
@@ -78,5 +83,8 @@ void mostrar_registros(t_registros* registro);
 
 t_instruccion* recibir_instruccion(int socket_cliente);
 void enviar_instruccion(int socket_cliente, t_instruccion* instruccion, uint32_t protocolo);
+
+int cantidad_argumentos(char* token);
+t_list* abrir_instrucciones(char* ruta);
 
 #endif /* UTILS_SRC_UTILS_ESTRUCTURAS_H_ */
